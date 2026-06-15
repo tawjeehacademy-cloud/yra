@@ -2,32 +2,46 @@ const express = require('express');
 const axios = require('axios');
 const app = express();
 
+// Middleware لمعالجة البيانات الواردة بصيغة JSON
 app.use(express.json());
 
 // استدعاء المتغيرات من بيئة Railway
 const { WEBHOOK_VERIFY_TOKEN, GRAPH_API_TOKEN, PHONE_NUMBER_ID } = process.env;
 
-// 1. مسار التحقق من الـ Webhook (GET)
+// التحقق من المتغيرات البيئية عند إقلاع الخادم
+if (!WEBHOOK_VERIFY_TOKEN || !GRAPH_API_TOKEN || !PHONE_NUMBER_ID) {
+  console.error('⚠️ تحذير: بعض المتغيرات البيئية مفقودة. تأكد من إضافتها في Railway.');
+}
+
+/**
+ * 1. مسار التحقق من الـ Webhook (GET)
+ * للتحقق من الاتصال الأولي بين خوادم Meta وسيرفرك.
+ */
 app.get('/webhook', (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
   if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) {
+    console.log('✅ تم التحقق من الـ Webhook بنجاح من قبل Meta.');
     res.status(200).send(challenge);
   } else {
+    console.error('❌ فشل التحقق من الـ Webhook. الرمز غير متطابق.');
     res.sendStatus(403);
   }
 });
 
-// 2. مسار استقبال الرسائل والرد الآلي (POST)
+/**
+ * 2. مسار استقبال الرسائل والرد الآلي (POST)
+ * واجهة التفاعل الأساسية لعملاء "انشورنس شيلد"
+ */
 app.post('/webhook', async (req, res) => {
   const body = req.body;
 
-  console.log("إشارة جديدة وصلت:", JSON.stringify(req.body, null, 2));
-  
-  // التأكد من أن الإشارة قادمة من واتساب
+  // التأكد من أن الإشارة قادمة من تطبيق واتساب للأعمال
   if (body.object === 'whatsapp_business_account') {
+    
+    // التحقق من الهيكل الداخلي لتجنب الانهيار (Crash) إذا وصلت بيانات فارغة
     if (
       body.entry &&
       body.entry[0].changes &&
@@ -35,15 +49,18 @@ app.post('/webhook', async (req, res) => {
       body.entry[0].changes[0].value.messages[0]
     ) {
       const message = body.entry[0].changes[0].value.messages[0];
-      const from = message.from; // رقم هاتف العميل
+      const from = message.from; // رقم العميل
       
-      // استخراج النص الذي أرسله العميل
+      // استخراج النص وتوحيد حالة الأحرف لتسهيل المطابقة
       const msgBody = message.text ? message.text.body.toLowerCase() : '';
+      
+      console.log(`\n📥 رسالة جديدة من [${from}]: "${msgBody}"`);
 
       // التحقق من الكلمات المفتاحية
       if (msgBody.includes('استفسار') || msgBody.includes('اسعار') || msgBody.includes('تأمين') || msgBody.includes('مرحبا')) {
         
-        // إرسال القائمة التفاعلية
+        console.log("🚀 كلمة مفتاحية متطابقة! جاري إرسال القائمة التفاعلية...");
+        
         try {
           await axios({
             method: 'POST',
@@ -52,43 +69,53 @@ app.post('/webhook', async (req, res) => {
               Authorization: `Bearer ${GRAPH_API_TOKEN}`,
               'Content-Type': 'application/json',
             },
-      data: {
-  messaging_product: 'whatsapp',
-  recipient_type: 'individual',
-  to: from,
-  type: 'interactive',
-  interactive: {
-    type: 'list',
-    header: { type: 'text', text: 'انشورنس شيلد' }, // تم التقصير لضمان القبول
-    body: { text: 'مرحباً بك. يرجى اختيار نوع التأمين المراد الاستفسار عنه:' },
-    footer: { text: 'خدمة عملاء مؤتمتة' },
-    action: {
-      button: 'الخدمات المتاحة', // 🛡️ هنا كان الفخ! أزلنا الرمز التعبيري وقصرنا الكلمة لتصبح 15 حرفاً فقط
-      sections: [
-        {
-          title: 'خدمات التأمين',
-          rows: [
-            { id: 'medical_insurance', title: 'تأمين طبي', description: 'استفسار عن أسعار وخدمات التأمين الطبي' },
-            { id: 'vehicle_insurance', title: 'تأمين مركبات', description: 'استفسار عن تأمين السيارات' }
-          ]
-        }
-      ]
-    }
-  }
-}
+            data: {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: from,
+              type: 'interactive',
+              interactive: {
+                type: 'list',
+                header: { type: 'text', text: 'انشورنس شيلد' }, // نص آمن
+                body: { text: 'مرحباً بك في منصة الشيلد الآمنة. يرجى اختيار نوع التأمين المراد الاستفسار عنه:' },
+                footer: { text: 'خدمة عملاء مؤتمتة' },
+                action: {
+                  button: 'الخدمات المتاحة', // مطابق للقيود: 15 حرفاً بدون مسافات إضافية أو رموز تعبيرية
+                  sections: [
+                    {
+                      title: 'خدمات التأمين',
+                      rows: [
+                        { id: 'medical_insurance', title: 'تأمين طبي', description: 'استفسار عن أسعار وخدمات التأمين' },
+                        { id: 'vehicle_insurance', title: 'تأمين مركبات', description: 'استفسار عن تأمين السيارات' }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
           });
+          
+          console.log('✅ تم إرسال القائمة التفاعلية بنجاح!');
+          
         } catch (error) {
-          console.error('خطأ في إرسال الرسالة:', error.response ? error.response.data : error.message);
+          // تفكيك الخطأ لطباعة السبب الدقيق من Meta
+          console.error('❌ فشل Axios. الرد من Meta:');
+          console.error(JSON.stringify(error.response?.data || error.message, null, 2));
         }
+      } else {
+        console.log('⚠️ الرسالة لا تحتوي على الكلمات المفتاحية المبرمجة. تم التجاهل.');
       }
     }
+    
+    // إرسال 200 OK للمنصة دائماً لإبلاغها بالاستلام وإيقاف تكرار الإرسال
     res.sendStatus(200);
   } else {
+    // رفض أي إشارات غير قادمة من واتساب
     res.sendStatus(404);
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080; // Railway يفضل استخدام 8080 أو المتغير الديناميكي
 app.listen(PORT, () => {
-  console.log(`Server is running beautifully on port ${PORT}`);
+  console.log(`\n🟢 سيرفر [Insurance Shield] مستيقظ ويعمل بكفاءة على المنفذ ${PORT}...\n`);
 });
