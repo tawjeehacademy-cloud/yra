@@ -41,7 +41,7 @@ app.post('/webhook', async (req, res) => {
   // التأكد من أن الإشارة قادمة من تطبيق واتساب للأعمال
   if (body.object === 'whatsapp_business_account') {
     
-    // التحقق من الهيكل الداخلي لتجنب الانهيار (Crash) إذا وصلت بيانات فارغة
+    // التحقق من الهيكل الداخلي لتجنب الانهيار إذا وصلت بيانات فارغة
     if (
       body.entry &&
       body.entry[0].changes &&
@@ -54,7 +54,6 @@ app.post('/webhook', async (req, res) => {
       // استخراج النص وتوحيد حالة الأحرف لتسهيل المطابقة
       const msgBody = message.text ? message.text.body.toLowerCase() : '';
       
-      // طباعة المراقبة النظيفة بدلاً من الـ JSON المعقد
       console.log(`\n📥 رسالة جديدة من [${from}]: "${msgBody}"`);
 
       // التحقق من الكلمات المفتاحية
@@ -81,7 +80,7 @@ app.post('/webhook', async (req, res) => {
                 body: { text: 'مرحباً بك في منصة الشيلد الآمنة. يرجى اختيار نوع التأمين المراد الاستفسار عنه:' },
                 footer: { text: 'خدمة عملاء مؤتمتة' },
                 action: {
-                  button: 'الخدمات المتاحة', // 15 حرفاً لتجاوز خطأ 400
+                  button: 'الخدمات المتاحة', // 🛡️ تم التعديل إلى 15 حرفاً لتجاوز خطأ 400 الصارم من Meta
                   sections: [
                     {
                       title: 'خدمات التأمين',
@@ -99,7 +98,8 @@ app.post('/webhook', async (req, res) => {
           console.log('✅ تم إرسال القائمة التفاعلية بنجاح!');
           
         } catch (error) {
-          console.error('❌ فشل Axios. الرد الدقيق من Meta:');
+          // تفكيك الخطأ لطباعة السبب الدقيق من Meta
+          console.error('❌ فشل Axios. الرد من Meta:');
           console.error(JSON.stringify(error.response?.data || error.message, null, 2));
         }
       } else {
