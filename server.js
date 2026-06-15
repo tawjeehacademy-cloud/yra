@@ -52,30 +52,30 @@ app.post('/webhook', async (req, res) => {
               Authorization: `Bearer ${GRAPH_API_TOKEN}`,
               'Content-Type': 'application/json',
             },
-            data: {
-              messaging_product: 'whatsapp',
-              recipient_type: 'individual',
-              to: from,
-              type: 'interactive',
-              interactive: {
-                type: 'list',
-                header: { type: 'text', text: 'انشورنس شيلد | Insurance Shield' },
-                body: { text: 'مرحباً بك في منصة الشيلد الآمنة. يرجى اختيار نوع التأمين المراد الاستفسار عنه:' },
-                footer: { text: 'خدمة عملاء مؤتمتة ذكية' },
-                action: {
-                  button: 'الخدمات المتاحة',
-                  sections: [
-                    {
-                      title: 'خدمات التأمين المتاحة',
-                      rows: [
-                        { id: 'medical_insurance', title: 'تأمين طبي', description: 'استفسار عن أسعار وخدمات التأمين الطبي' },
-                        { id: 'vehicle_insurance', title: 'تأمين مركبات', description: 'استفسار عن تأمين السيارات والمركبات' }
-                      ]
-                    }
-                  ]
-                }
-              }
-            },
+      data: {
+  messaging_product: 'whatsapp',
+  recipient_type: 'individual',
+  to: from,
+  type: 'interactive',
+  interactive: {
+    type: 'list',
+    header: { type: 'text', text: 'انشورنس شيلد' }, // تم التقصير لضمان القبول
+    body: { text: 'مرحباً بك. يرجى اختيار نوع التأمين المراد الاستفسار عنه:' },
+    footer: { text: 'خدمة عملاء مؤتمتة' },
+    action: {
+      button: 'الخدمات المتاحة', // 🛡️ هنا كان الفخ! أزلنا الرمز التعبيري وقصرنا الكلمة لتصبح 15 حرفاً فقط
+      sections: [
+        {
+          title: 'خدمات التأمين',
+          rows: [
+            { id: 'medical_insurance', title: 'تأمين طبي', description: 'استفسار عن أسعار وخدمات التأمين الطبي' },
+            { id: 'vehicle_insurance', title: 'تأمين مركبات', description: 'استفسار عن تأمين السيارات' }
+          ]
+        }
+      ]
+    }
+  }
+}
           });
         } catch (error) {
           console.error('خطأ في إرسال الرسالة:', error.response ? error.response.data : error.message);
