@@ -24,6 +24,8 @@ app.get('/webhook', (req, res) => {
 app.post('/webhook', async (req, res) => {
   const body = req.body;
 
+  console.log("إشارة جديدة وصلت:", JSON.stringify(req.body, null, 2));
+  
   // التأكد من أن الإشارة قادمة من واتساب
   if (body.object === 'whatsapp_business_account') {
     if (
