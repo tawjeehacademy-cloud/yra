@@ -54,6 +54,7 @@ app.post('/webhook', async (req, res) => {
       // استخراج النص وتوحيد حالة الأحرف لتسهيل المطابقة
       const msgBody = message.text ? message.text.body.toLowerCase() : '';
       
+      // طباعة المراقبة النظيفة بدلاً من الـ JSON المعقد
       console.log(`\n📥 رسالة جديدة من [${from}]: "${msgBody}"`);
 
       // التحقق من الكلمات المفتاحية
@@ -76,11 +77,11 @@ app.post('/webhook', async (req, res) => {
               type: 'interactive',
               interactive: {
                 type: 'list',
-                header: { type: 'text', text: 'انشورنس شيلد' }, // نص آمن
+                header: { type: 'text', text: 'انشورنس شيلد' }, 
                 body: { text: 'مرحباً بك في منصة الشيلد الآمنة. يرجى اختيار نوع التأمين المراد الاستفسار عنه:' },
                 footer: { text: 'خدمة عملاء مؤتمتة' },
                 action: {
-                  button: 'الخدمات المتاحة', // مطابق للقيود: 15 حرفاً بدون مسافات إضافية أو رموز تعبيرية
+                  button: 'الخدمات المتاحة', // 15 حرفاً لتجاوز خطأ 400
                   sections: [
                     {
                       title: 'خدمات التأمين',
@@ -98,8 +99,7 @@ app.post('/webhook', async (req, res) => {
           console.log('✅ تم إرسال القائمة التفاعلية بنجاح!');
           
         } catch (error) {
-          // تفكيك الخطأ لطباعة السبب الدقيق من Meta
-          console.error('❌ فشل Axios. الرد من Meta:');
+          console.error('❌ فشل Axios. الرد الدقيق من Meta:');
           console.error(JSON.stringify(error.response?.data || error.message, null, 2));
         }
       } else {
@@ -115,7 +115,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8080; // Railway يفضل استخدام 8080 أو المتغير الديناميكي
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`\n🟢 سيرفر [Insurance Shield] مستيقظ ويعمل بكفاءة على المنفذ ${PORT}...\n`);
 });
